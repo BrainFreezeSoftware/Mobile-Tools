@@ -7,17 +7,16 @@
 
 import Foundation
 
-@MainActor
 public final class DownloadManager: NSObject {
     
     public static let manager = DownloadManager()
 
     private var masterFileList: [BekoFile] = []
-    private var tempFileList: [[String: Any]] = []
+    private var tempFileList: [BekoFile] = []
     
     private var currentPage: Int = 1
-    private var maxPages: Int = 3
-    
+    private var maxPages: Int = 10
+
     private override init() {
         super.init()
     }
@@ -26,71 +25,80 @@ public final class DownloadManager: NSObject {
         let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documentsDirectory.appendingPathComponent("FileList.json")
     }
-    
-    public func getFilesArray(callback: @escaping ([BekoFile]) -> Void) {
-        if tempFileList.isEmpty {
+
+    @MainActor
+    public func getFilesArray() async -> [BekoFile] {
+        if currentPage == 1 && tempFileList.isEmpty {
             tempFileList = []
-            currentPage = 1
-            maxPages = 3
+            // Optional local reading: if you convert readFilesListFromFile to async/await:
+            // let localFiles = await readFilesListFromFile()
         }
-        
-        if currentPage == 1 {
-            readFilesListFromFile(callback: callback)
+
+        if currentPage > maxPages {
+            let finalResults = tempFileList
+            self.tempFileList = []
+            self.currentPage = 1
+
+            await self.downloadAllThumbnails(files: self.masterFileList)
+
+            self.masterFileList = finalResults
+            return finalResults
         }
-        
+
         let urlString = "http://www.bekostore.com/wp/wp-json/wp/v2/media?per_page=100&page=\(currentPage)"
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: urlString) else {
+            return []
+        }
 
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            if let jsonData = data, error == nil {
+        do {
+            // Use Swift Concurrency for the network request directly
+            let (data, _) = try await URLSession.shared.data(from: url)
 
-                // ─── THIS IS WHERE THE DECODING CODE GOES FOR NETWORK DATA ───
-                do {
-                    let decoder = JSONDecoder()
-                    // Decodes the data into an array of type-safe BekoFile structures
-                    let verifiedFiles = try decoder.decode([BekoFile].self, from: jsonData)
+            let decoder = JSONDecoder()
+            let verifiedFiles = try decoder.decode([BekoFile].self, from: data)
 
-                    DispatchQueue.main.async {
-                        self.masterFileList = verifiedFiles
-                        callback(verifiedFiles)
-                    }
-                } catch {
-                    print("Failed mapping network models securely: \(error)")
-                    DispatchQueue.main.async { callback([]) }
-                }
-                // ─────────────────────────────────────────────────────────────
+            self.tempFileList.append(contentsOf: verifiedFiles)
 
+            if verifiedFiles.count < 100 {
+                self.currentPage = self.maxPages + 1
             } else {
-                DispatchQueue.main.async { callback([]) }
+                self.currentPage += 1
             }
-        }.resume()
+
+            // Clean, direct recursive call with await
+            return await self.getFilesArray()
+
+        } catch {
+            print("Network request or mapping failed on page \(self.currentPage): \(error)")
+
+            let errorStateFallback = self.tempFileList
+            return errorStateFallback
+        }
     }
-    
+
     private func downloadAllThumbnails(files: [BekoFile]) async {
-        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        
         for file in files {
-            guard let sourceURLString = OnlineFilesManager.manager.getFileThumbnailPath(file),
-                  let sourceURL = URL(string: sourceURLString) else { continue }
-            
-            let imgName = sourceURL.lastPathComponent
-            let writableURL = documentsDirectory.appendingPathComponent(imgName)
-            
-            if !FileManager.default.fileExists(atPath: writableURL.path) && !imgName.isEmpty {
-                await getImageFromURLAndSave(imageName: imgName, fileURL: sourceURL, in: documentsDirectory)
+            if let localAssetURL = file.localAssetURL,
+               FileManager.default.fileExists(atPath: localAssetURL.path()) == false {
+                await downloadThumbnailForFile(file: file)
             }
         }
     }
-    
-    private func getImageFromURLAndSave(imageName: String, fileURL: URL, in directory: URL) async {
+
+    private func downloadThumbnailForFile(file: BekoFile) async {
         do {
-            let (data, _) = try await URLSession.shared.data(from: fileURL)
-            let fileURLToSave = directory.appendingPathComponent(imageName)
-            try data.write(to: fileURLToSave, options: .atomic)
-            print("Image \(imageName) Saved Successfully")
+            guard let onlineAssetURL = file.onlineAssetURL,
+            let localAssetURL = file.localAssetURL
+            else {
+                return
+            }
+            let (data, _) = try await URLSession.shared.data(from: onlineAssetURL)
+            try data.write(to: localAssetURL, options: .atomic)
         } catch {
             print("Error Writing File: \(error)")
         }
+    }
+    private func getImageFromURLAndSave(imageName: String, fileURL: URL, in directory: URL) async {
     }
     
     func writeFilesListToFile() {

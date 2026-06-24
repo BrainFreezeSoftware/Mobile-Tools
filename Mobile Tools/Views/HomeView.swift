@@ -164,7 +164,14 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(for: DashboardDestination.self) { destination in
-                PlaceholderDetailView(destination: destination)
+                switch destination {
+                case .manuals:
+                    FolderCollectionView(docTypeName: "Manuals", fileType: .manual)
+                case .techDrawings:
+                    FolderCollectionView(docTypeName: "Tech Drawings", fileType: .drawing)
+                default:
+                    PlaceholderDetailView(destination: destination)
+                }
             }
         }
         .onAppear {

@@ -7,36 +7,81 @@
 
 import Foundation
 
-public final class OnlineFilesManager {
+public final class OnlineFilesManager: NSObject {
     public static let manager = OnlineFilesManager()
     private var onlineFiles: [BekoFile] = []
 
-    private init() {}
+    private override init() {
+        super.init()
+    }
 
-    public func setupFiles(callback: @escaping (Bool) -> Void) {
-        DownloadManager.manager.getFilesArray { [weak self] files in
-            self?.onlineFiles = files
-            callback(!files.isEmpty)
+    public func setupFiles(completion: @escaping (Bool) -> Void) {
+        Task { @MainActor in
+            let files = await DownloadManager.manager.getFilesArray()
+
+            self.onlineFiles = files
+            completion(true)
         }
     }
 
-    /// Filters files safely using strongly typed properties instead of untyped dictionary string evaluations.
-    public func filesFilteredBy(typeCode: String, group: String) -> [BekoFile] {
+    public func filesFilteredByFileType(fileType: FileType, group: String = "") -> [BekoFile] {
         return onlineFiles.filter { file in
-            file.typeCode.uppercased() == typeCode.uppercased() &&
-            file.groupName.uppercased() == group.uppercased()
+            let match = fileType == file.fileType
+            if match && !group.isEmpty {
+                return file.groupName.uppercased() == group.uppercased()
+            }
+            return match
         }
     }
 
-    public func filesFilteredBy(typeCode: String) -> [BekoFile] {
-        return onlineFiles.filter { $0.typeCode.uppercased() == typeCode.uppercased() }
+    public func getFileTags(file: BekoFile) -> [String] {
+        // Maps FileLanguage enums to their raw string representations, then joins them
+        let rawLanguagesString = file.languages.map { $0.rawValue }.joined(separator: ",")
+        return [file.fileType.rawValue, file.groupName, rawLanguagesString]
     }
 
-    // MARK: - Interface Interoperability Layer
-    // These methods match your original manager's method names but drop unstructured dictionaries
+    public func getFileLanguages(file: BekoFile) -> [String] {
+        // Converts the [FileLanguage] enum array to a clean [String] array
+        return file.languages.map { $0.rawValue }
+    }
 
-    public func getFileName(_ file: BekoFile) -> String { return file.fileName }
-    public func getFileURL(_ file: BekoFile) -> String { return file.assetURLString }
-    public func getFileLanguages(_ file: BekoFile) -> [String] { return file.languages }
-    public func getFileThumbnailPath(_ file: BekoFile) -> String? { return file.targetThumbnailPath }
+    public func getLanguagesForFiles(files: [BekoFile]) -> [String] {
+        var langSet = Set<String>()
+        for file in files {
+            // Extracts raw string languages and unions them to prevent duplication
+            let rawLangs = file.languages.map { $0.rawValue }
+            langSet.formUnion(rawLangs)
+        }
+        return Array(langSet).sorted() // Optional: Sorted results ensure a consistent order in UI filters
+    }
+
+    public func getFileName(file: BekoFile) -> String? {
+        return file.fileName
+    }
+
+    public func getFileURL(file: BekoFile) -> String? {
+        return file.link
+    }
+
+    public func getGroups() -> [BekoFile] {
+        return filesFilteredByFileType(fileType: .group)
+    }
+
+    public func getGroupsWithFileType(fileType: FileType) -> [BekoFile] {
+        let groups = getGroups()
+
+        let filtered = groups.filter { group in
+            let groupName = group.fileName
+            let files = filesFilteredByFileType(fileType: fileType, group: groupName)
+            return !files.isEmpty
+        }
+
+        return filtered.sorted { obj1, obj2 in
+            return obj1.fileName.localizedCompare(obj2.fileName) == .orderedAscending
+        }
+    }
+
+    public func getGroupName(group: BekoFile) -> String? {
+        return group.fileName
+    }
 }
