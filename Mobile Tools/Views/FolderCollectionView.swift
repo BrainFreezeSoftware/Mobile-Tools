@@ -49,20 +49,9 @@ struct FolderCollectionView: View {
         }
         .navigationTitle(docTypeName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Home") {
-                    dismiss()
-                }
-                .foregroundColor(.white)
-            }
-        }
         // Decoupled type-safe destination stack hook [cite: 1038]
         .navigationDestination(for: String.self) { selectedGroup in
-            Text("Document View For: \(selectedGroup)")
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(ZColorTheme.darkNavyWrapper.ignoresSafeArea())
+            OnlineDocCollectionView(docTypeName: docTypeName, fileType: fileType, group: selectedGroup)
         }
     }
 }

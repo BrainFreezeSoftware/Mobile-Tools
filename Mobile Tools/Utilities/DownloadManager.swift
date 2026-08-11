@@ -39,9 +39,10 @@ public final class DownloadManager: NSObject {
             self.tempFileList = []
             self.currentPage = 1
 
+            self.masterFileList = finalResults
+            
             await self.downloadAllThumbnails(files: self.masterFileList)
 
-            self.masterFileList = finalResults
             return finalResults
         }
 

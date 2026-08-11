@@ -15,6 +15,14 @@ public enum FileType: String, Codable {
     case presentation = "PRE"
     case priceBook = "PRI"
     case group = "GROUP"
+
+    public var isLandscapeCell: Bool {
+        return self == .presentation
+    }
+
+    public var showFileName: Bool {
+        return self == .drawing
+    }
 }
 
 public enum FileLanguage: String, Codable {
@@ -22,13 +30,23 @@ public enum FileLanguage: String, Codable {
     case spanish = "ES"
     case french = "FR"
     case portuguese = "PT"
+
+    public var name: String {
+        switch self {
+        case .english: "English"
+        case .spanish: "Spanish"
+        case .french: "French"
+        case .portuguese: "Portuguese"
+        }
+    }
 }
 
-public struct BekoFile: Codable, Identifiable {
+public struct BekoFile: Codable, Identifiable, Hashable {
     public let id: Int
     public let date: String
     public let link: String
     public let mimeType: String
+    public let sourceURL: String
 
     // Strongly-typed data properties populated directly via custom encoding/decoding
     public let fileType: FileType
@@ -42,7 +60,16 @@ public struct BekoFile: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, date, link, title, caption
         case mimeType = "mime_type"
+        case sourceURL = "source_url"
         case mediaDetails = "media_details"
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    public static func == (lhs: BekoFile, rhs: BekoFile) -> Bool {
+        return lhs.id == rhs.id
     }
 
     // MARK: - Helper Nested Structural Types
@@ -79,6 +106,7 @@ public struct BekoFile: Codable, Identifiable {
         self.date = try container.decode(String.self, forKey: .date)
         self.link = try container.decode(String.self, forKey: .link)
         self.mimeType = try container.decode(String.self, forKey: .mimeType)
+        self.sourceURL = try container.decodeIfPresent(String.self, forKey: .sourceURL) ?? ""
         self.title = try container.decode(RenderedText.self, forKey: .title)
         self.mediaDetails = try container.decode(MediaDetails.self, forKey: .mediaDetails)
 
@@ -169,4 +197,9 @@ public struct BekoFile: Codable, Identifiable {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0].appendingPathComponent(lastComponent)
     }
+
+    public var fileURL: URL? {
+        return URL(string: sourceURL)
+    }
+
 }
