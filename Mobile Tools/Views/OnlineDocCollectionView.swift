@@ -24,11 +24,10 @@ struct OnlineDocCollectionView: View {
     var currentLanguage = FileLanguage.english // Default language selection
     private let languageFilters: [FileLanguage] = [.english, .spanish, .french, .portuguese]
     private var columns: [GridItem] {
-        if fileType.isLandscapeCell {
-            return [GridItem(.flexible(), spacing: 16)] // Single column wide banner rows
+        if fileType.usesSingleColumnGrid {
+            return [GridItem(.flexible(), spacing: 16)] // Single column wide rows
         } else {
             return [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 16)]
-            //return [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)] // Dual grid layout
         }
     }
 
@@ -97,7 +96,6 @@ struct OnlineDocCollectionView: View {
                                 NavigationLink(destination: DocumentDetailView(file: file)) {
                                     DocumentGridCell(
                                         file: file,
-                                        isLandscape: fileType.isLandscapeCell,
                                         showFileName: fileType.showFileName,
                                         isSelected: selectedFiles.contains(file),
                                         onToggleSelection: {
@@ -160,53 +158,29 @@ struct OnlineDocCollectionView: View {
 
 struct DocumentGridCell: View {
     let file: BekoFile
-    let isLandscape: Bool
     let showFileName: Bool
     let isSelected: Bool
     let onToggleSelection: () -> Void
 
     var body: some View {
-        HStack(spacing: isLandscape ? 16 : 0) {
-            if isLandscape {
-                // Wide Landscape Layout Rows
+        // Standard Sheet Aspect Ratio Layout (1 : 1.414 ratio matches standard paper/A4)
+        VStack(alignment: .center, spacing: 10) {
+            ZStack(alignment: .bottomLeading) {
                 cellThumbnailImage
-                    .frame(width: 110)
                     .cornerRadius(8)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(file.fileName)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-
-                    Text("Document Type")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                Spacer()
+                    .clipped()
 
                 selectionIndicator
-            } else {
-                // Standard Sheet Aspect Ratio Layout (1 : 1.414 ratio matches standard paper/A4)
-                VStack(alignment: .center, spacing: 10) {
-                    ZStack(alignment: .bottomLeading) {
-                        cellThumbnailImage
-                            .cornerRadius(8)
-                            .clipped()
+                    .padding(8)
+            }
 
-                        selectionIndicator
-                            .padding(8)
-                    }
-
-                    if showFileName {
-                        Text(file.fileName)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 4)
-                    }
-                }
+            if showFileName {
+                Text(file.fileName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 4)
             }
         }
         .padding(4)
@@ -255,13 +229,14 @@ struct DocumentGridCell: View {
 
 struct SearchBarView: View {
     @Binding var text: String
+    var placeholder: String = "Search documents..."
 
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.white.opacity(0.6))
 
-            TextField("", text: $text, prompt: Text("Search documents...").foregroundColor(.white.opacity(0.4)))
+            TextField("", text: $text, prompt: Text(placeholder).foregroundColor(.white.opacity(0.4)))
                 .foregroundColor(.white)
                 .autocorrectionDisabled()
 

@@ -165,6 +165,8 @@ struct HomeView: View {
             }
             .navigationDestination(for: DashboardDestination.self) { destination in
                 switch destination {
+                case .videos:
+                    VideosView()
                 case .manuals:
                     FolderCollectionView(docTypeName: destination.title, fileType: .manual)
                 case .brochures:
@@ -172,9 +174,9 @@ struct HomeView: View {
                 case .techDrawings:
                     FolderCollectionView(docTypeName: destination.title, fileType: .drawing)
                 case .presentations:
-                    FolderCollectionView(docTypeName: destination.title, fileType: .presentation)
+                    OnlineDocCollectionView(docTypeName: destination.title, fileType: .presentation, group: "")
                 case .priceBooks:
-                    FolderCollectionView(docTypeName: destination.title, fileType: .priceBook)
+                    OnlineDocCollectionView(docTypeName: destination.title, fileType: .priceBook, group: "")
                 default:
                     PlaceholderDetailView(destination: destination)
                 }

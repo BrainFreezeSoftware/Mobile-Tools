@@ -16,12 +16,12 @@ public enum FileType: String, Codable {
     case priceBook = "PRI"
     case group = "GROUP"
 
-    public var isLandscapeCell: Bool {
+    public var usesSingleColumnGrid: Bool {
         return self == .presentation
     }
 
     public var showFileName: Bool {
-        return self == .drawing
+        return self == .drawing || self == .presentation
     }
 }
 
