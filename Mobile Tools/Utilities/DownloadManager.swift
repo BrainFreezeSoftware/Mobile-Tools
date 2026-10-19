@@ -40,7 +40,8 @@ public final class DownloadManager: NSObject {
             self.currentPage = 1
 
             self.masterFileList = finalResults
-            
+            writeFilesListToFile()
+
             await self.downloadAllThumbnails(files: self.masterFileList)
 
             return finalResults
@@ -48,7 +49,7 @@ public final class DownloadManager: NSObject {
 
         let urlString = "http://www.bekostore.com/wp/wp-json/wp/v2/media?per_page=100&page=\(currentPage)"
         guard let url = URL(string: urlString) else {
-            return []
+            return tempFileList.isEmpty ? readCachedFileListSynchronously() : tempFileList
         }
 
         do {
@@ -72,9 +73,24 @@ public final class DownloadManager: NSObject {
         } catch {
             print("Network request or mapping failed on page \(self.currentPage): \(error)")
 
+            self.currentPage = 1
             let errorStateFallback = self.tempFileList
-            return errorStateFallback
+            self.tempFileList = []
+
+            // Nothing succeeded this session (e.g. no connectivity) — fall back to the last cached list
+            // instead of leaving every screen empty.
+            guard errorStateFallback.isEmpty else { return errorStateFallback }
+            return readCachedFileListSynchronously()
         }
+    }
+
+    // Wraps readFilesListFromFile's synchronous disk I/O for inline use as a fallback.
+    private func readCachedFileListSynchronously() -> [BekoFile] {
+        var cachedFiles: [BekoFile] = []
+        readFilesListFromFile { files in
+            cachedFiles = files
+        }
+        return cachedFiles
     }
 
     private func downloadAllThumbnails(files: [BekoFile]) async {

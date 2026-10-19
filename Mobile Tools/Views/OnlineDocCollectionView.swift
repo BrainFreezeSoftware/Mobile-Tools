@@ -18,6 +18,7 @@ struct OnlineDocCollectionView: View {
     @State private var searchText = ""
     @State private var selectedLanguageIndex = 0
     @State private var selectedFiles: Set<BekoFile> = []
+    @State private var showingShareSheet = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -126,7 +127,7 @@ struct OnlineDocCollectionView: View {
                     }
 
                     // Compose/Send Action Email trigger
-                    Button(action: sendSelectedFilesByEmail) {
+                    Button(action: sendOrShareSelectedFiles) {
                         Image(systemName: "square.and.pencil")
                             .imageScale(.large)
                             .foregroundColor(.white)
@@ -135,6 +136,9 @@ struct OnlineDocCollectionView: View {
                     .opacity(selectedFiles.isEmpty ? 0.5 : 1.0)
                 }
             }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ActivityViewController(activityItems: selectedFiles.compactMap { $0.fileURL })
         }
     }
 
@@ -148,9 +152,8 @@ struct OnlineDocCollectionView: View {
         }
     }
 
-    private func sendSelectedFilesByEmail() {
-        let filePaths = selectedFiles.compactMap { $0.localAssetURL }
-        print("Triggering mail composition composer context for \(filePaths.count) files.")
+    private func sendOrShareSelectedFiles() {
+        showingShareSheet = true
     }
 }
 

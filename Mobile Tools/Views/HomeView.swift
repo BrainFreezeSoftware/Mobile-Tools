@@ -6,13 +6,13 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Navigation Destination Enum
 enum DashboardDestination: Identifiable, CaseIterable {
     case videos, manuals, brochures
     case techDrawings, presentations, priceBooks
     case onlineInventory, eLearning, simulators
-    case contactUs
 
     var id: Self { self }
 
@@ -27,7 +27,6 @@ enum DashboardDestination: Identifiable, CaseIterable {
         case .onlineInventory: return "Online Inventory"
         case .eLearning: return "e-Learning"
         case .simulators: return "Simulators"
-        case .contactUs: return "Contact Us"
         }
     }
 }
@@ -58,9 +57,15 @@ struct HomeView: View {
     @State private var isLoading: Bool = true
     @State private var loadingMessage: String = "Loading application files..."
     @State private var navigationPath = NavigationPath()
+    @State private var showCallUsAlert = false
 
     // Centralizing application base color theme
     private let appBackgroundColor = Color(red: 3/255, green: 32/255, blue: 74/255)
+
+    // Matches the legacy Beko app's "Call Us" phone number
+    private let callUsPhoneNumber = "800-235-6797"
+
+    private let eLearningURL = URL(string: "https://www.beko-technologies.us/en-us/know-how/training/beko-academy-e-learning/")!
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -135,7 +140,7 @@ struct HomeView: View {
 
                     // MARK: - Sticky Footer Contact Panel
                     VStack(spacing: 0) {
-                        NavigationLink(value: DashboardDestination.contactUs) {
+                        Button(action: callUs) {
                             Text("Contact Us")
                                 .font(.custom("KievitOffcPro-Medium", size: isPad ? 19 : 16))
                                 .foregroundColor(.white)
@@ -144,6 +149,7 @@ struct HomeView: View {
                                 .background(Color(red: 0/255, green: 91/255, blue: 171/255))
                                 .cornerRadius(6)
                         }
+                        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: -3)
                         .padding(.horizontal, 16)
                         .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 12)
                     }
@@ -177,6 +183,10 @@ struct HomeView: View {
                     OnlineDocCollectionView(docTypeName: destination.title, fileType: .presentation, group: "")
                 case .priceBooks:
                     OnlineDocCollectionView(docTypeName: destination.title, fileType: .priceBook, group: "")
+                case .eLearning:
+                    WebContentView(title: destination.title, url: eLearningURL)
+                case .simulators:
+                    SimulatorsView()
                 default:
                     PlaceholderDetailView(destination: destination)
                 }
@@ -190,6 +200,21 @@ struct HomeView: View {
                 }
             }
         }
+        .alert("Call Us", isPresented: $showCallUsAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Call") {
+                guard let url = URL(string: "tel://\(callUsPhoneNumber)") else { return }
+                UIApplication.shared.open(url)
+            }
+        } message: {
+            Text("We can be reached at (800) 235-6797.")
+        }
+    }
+
+    // MARK: - Contact Us Action
+
+    private func callUs() {
+        showCallUsAlert = true
     }
 }
 

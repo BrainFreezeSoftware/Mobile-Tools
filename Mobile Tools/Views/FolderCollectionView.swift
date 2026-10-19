@@ -30,21 +30,33 @@ struct FolderCollectionView: View {
             ZColorTheme.darkNavyWrapper
                 .ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(folderGroups) { group in
-                            let groupName = group.groupName
-
-                            NavigationLink(value: groupName) {
-                                FolderGridCell(file: group)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    .padding(.horizontal)
+            if folderGroups.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "folder.badge.questionmark")
+                        .font(.system(size: 44))
+                        .foregroundColor(.white.opacity(0.4))
+                    Text("No Documents Found")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
                 }
-                .padding(.top, 16)
+                .padding(.top, 60)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(folderGroups) { group in
+                                let groupName = group.groupName
+
+                                NavigationLink(value: groupName) {
+                                    FolderGridCell(file: group)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.top, 16)
+                }
             }
         }
         .navigationTitle(docTypeName)

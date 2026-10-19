@@ -159,9 +159,18 @@ public struct BekoFile: Codable, Identifiable, Hashable {
         try container.encode(title, forKey: .title)
         try container.encode(mediaDetails, forKey: .mediaDetails)
 
-        // Synthesizes the custom string component safely back into expected CMS caption format
+        // Synthesizes the custom string component back into the same "TYPE | LANG | GROUP" format
+        // the live CMS caption uses (and init(from:) expects): GROUP-type files use "TYPE | GROUP",
+        // non-grouped files use "TYPE | LANG", and grouped files use "TYPE | LANG | GROUP".
         let rawLangs = languages.map { $0.rawValue }.joined(separator: ",")
-        let assembledCaption = "\(fileType.rawValue) | \(groupName) | \(rawLangs)"
+        let assembledCaption: String
+        if fileType == .group {
+            assembledCaption = "\(fileType.rawValue) | \(groupName)"
+        } else if !groupName.isEmpty {
+            assembledCaption = "\(fileType.rawValue) | \(rawLangs) | \(groupName)"
+        } else {
+            assembledCaption = "\(fileType.rawValue) | \(rawLangs)"
+        }
         try container.encode(RenderedText(rendered: assembledCaption), forKey: .caption)
     }
 
