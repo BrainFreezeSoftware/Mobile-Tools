@@ -8,6 +8,34 @@
 
 import Foundation
 
+private let htmlEntityPattern = try! Regex("&(#[0-9]+|#[xX][0-9a-fA-F]+|amp|lt|gt|quot|apos|nbsp);")
+
+private extension String {
+    /// WordPress returns titles as HTML, e.g. `Installation &#038; Operation &#8211; Rev K`.
+    var decodingHTMLEntities: String {
+        replacing(htmlEntityPattern) { match in
+            let original = String(self[match.range])
+            let entity = original.dropFirst().dropLast()
+
+            switch entity {
+            case "amp": return "&"
+            case "lt": return "<"
+            case "gt": return ">"
+            case "quot": return "\""
+            case "apos": return "'"
+            case "nbsp": return " "
+            default:
+                let digits = entity.dropFirst()
+                let codePoint = digits.first?.lowercased() == "x"
+                    ? UInt32(digits.dropFirst(), radix: 16)
+                    : UInt32(digits)
+                guard let codePoint, let scalar = Unicode.Scalar(codePoint) else { return original }
+                return String(Character(scalar))
+            }
+        }
+    }
+}
+
 public enum FileType: String, Codable {
     case manual = "MAN"
     case brochure = "BRO"
@@ -119,6 +147,7 @@ public struct BekoFile: Codable, Identifiable, Hashable {
             .replacingOccurrences(of: "<p>", with: "")
             .replacingOccurrences(of: "</p>", with: "")
             .replacingOccurrences(of: "\n", with: "")
+            .decodingHTMLEntities
 
         let components = cleanCaption.components(separatedBy: "|").map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -182,6 +211,7 @@ public struct BekoFile: Codable, Identifiable, Hashable {
             .replacingOccurrences(of: "<p>", with: "")
             .replacingOccurrences(of: "</p>", with: "")
             .replacingOccurrences(of: "\n", with: "")
+            .decodingHTMLEntities
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

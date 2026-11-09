@@ -74,12 +74,10 @@ public final class DownloadManager: NSObject {
             print("Network request or mapping failed on page \(self.currentPage): \(error)")
 
             self.currentPage = 1
-            let errorStateFallback = self.tempFileList
             self.tempFileList = []
 
-            // Nothing succeeded this session (e.g. no connectivity) — fall back to the last cached list
-            // instead of leaving every screen empty.
-            guard errorStateFallback.isEmpty else { return errorStateFallback }
+            // A refresh is all-or-nothing: a failure on any page falls back to the last complete
+            // catalog, so a partial list never hides documents.
             return readCachedFileListSynchronously()
         }
     }

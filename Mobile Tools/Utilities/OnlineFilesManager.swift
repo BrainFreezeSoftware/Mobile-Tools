@@ -71,8 +71,8 @@ public final class OnlineFilesManager: NSObject {
         let groups = getGroups()
 
         let filtered = groups.filter { group in
-            let groupName = group.fileName
-            let files = filesFilteredByFileType(fileType: fileType, group: groupName)
+            // Must match the name FolderCollectionView navigates with, which comes from the caption.
+            let files = filesFilteredByFileType(fileType: fileType, group: group.groupName)
             return !files.isEmpty
         }
 
