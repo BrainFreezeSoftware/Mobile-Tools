@@ -16,8 +16,7 @@ struct SimulatorsView: View {
         SimulatorItem(name: "DRYPOINT XFi", url: URL(string: "https://www.beko-technologies.us/en-us/drypoint-xfi-app/")!),
         SimulatorItem(name: "QWIK-PURE", url: URL(string: "https://www.beko-technologies.us/en-us/qwik-pure-app/")!),
         SimulatorItem(name: "DRYPOINT RA LED", url: URL(string: "https://www.beko-technologies.us/en-us/drypoint-ra-led-app/")!),
-        SimulatorItem(name: "DRYPOINT RX", url: URL(string: "https://www.beko-technologies.us/en-us/drypoint-ra-gen-iii-app/")!),
-        SimulatorItem(name: "DRYPOINT® MDi", url: URL(string: "https://www.beko-technologies.us/en-us/drypoint-mdi-landing/")!)
+        SimulatorItem(name: "DRYPOINT RX", url: URL(string: "https://www.beko-technologies.us/en-us/drypoint-ra-gen-iii-app/")!)
     ]
 
     private let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]

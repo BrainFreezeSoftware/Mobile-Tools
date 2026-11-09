@@ -30,32 +30,45 @@ public final class YouTubeManager: NSObject {
     }
 
     public func getVideos(playlist: YouTubePlaylist) async -> [YouTubeVideo] {
-        let urlString = "https://www.googleapis.com/youtube/v3/playlistItems?key=\(Self.apiKey)&playlistId=\(playlist.rawValue)&part=snippet,id&order=date&maxResults=20"
-        guard let url = URL(string: urlString) else { return [] }
+        var videos: [YouTubeVideo] = []
+        var pageToken: String?
 
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let response = try JSONDecoder().decode(PlaylistItemsResponse.self, from: data)
-
-            return response.items.compactMap { item in
-                guard let videoId = item.snippet.resourceId.videoId else { return nil }
-                let thumbnailURLString = item.snippet.thumbnails.high?.url
-                    ?? item.snippet.thumbnails.medium?.url
-                    ?? item.snippet.thumbnails.defaultThumbnail?.url
-                    ?? ""
-
-                return YouTubeVideo(videoId: videoId, title: item.snippet.title, thumbnailURLString: thumbnailURLString)
+        // The API returns at most 50 items per request, so follow nextPageToken until the whole playlist is loaded
+        repeat {
+            var urlString = "https://www.googleapis.com/youtube/v3/playlistItems?key=\(Self.apiKey)&playlistId=\(playlist.rawValue)&part=snippet,id&order=date&maxResults=50"
+            if let pageToken {
+                urlString += "&pageToken=\(pageToken)"
             }
-        } catch {
-            print("Error fetching YouTube playlist videos: \(error)")
-            return []
-        }
+            guard let url = URL(string: urlString) else { break }
+
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(PlaylistItemsResponse.self, from: data)
+
+                videos += response.items.compactMap { item in
+                    guard let videoId = item.snippet.resourceId.videoId else { return nil }
+                    let thumbnailURLString = item.snippet.thumbnails.high?.url
+                        ?? item.snippet.thumbnails.medium?.url
+                        ?? item.snippet.thumbnails.defaultThumbnail?.url
+                        ?? ""
+
+                    return YouTubeVideo(videoId: videoId, title: item.snippet.title, thumbnailURLString: thumbnailURLString)
+                }
+                pageToken = response.nextPageToken
+            } catch {
+                print("Error fetching YouTube playlist videos: \(error)")
+                break
+            }
+        } while pageToken != nil
+
+        return videos
     }
 
     // MARK: - Decoding Types
 
     private struct PlaylistItemsResponse: Decodable {
         let items: [PlaylistItem]
+        let nextPageToken: String?
     }
 
     private struct PlaylistItem: Decodable {

@@ -66,6 +66,7 @@ struct HomeView: View {
     private let callUsPhoneNumber = "800-235-6797"
 
     private let eLearningURL = URL(string: "https://www.beko-technologies.us/en-us/know-how/training/beko-academy-e-learning/")!
+    private let onlineInventoryURL = URL(string: "https://www.beko-technologies.us/en-us/dealer/online-inventory/")!
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -183,12 +184,12 @@ struct HomeView: View {
                     OnlineDocCollectionView(docTypeName: destination.title, fileType: .presentation, group: "")
                 case .priceBooks:
                     OnlineDocCollectionView(docTypeName: destination.title, fileType: .priceBook, group: "")
+                case .onlineInventory:
+                    WebContentView(title: destination.title, url: onlineInventoryURL)
                 case .eLearning:
                     WebContentView(title: destination.title, url: eLearningURL)
                 case .simulators:
                     SimulatorsView()
-                default:
-                    PlaceholderDetailView(destination: destination)
                 }
             }
         }
@@ -254,22 +255,6 @@ struct MenuButtonView: View {
         .frame(height: isPad ? 135 : 108)
         .background(Color(red: 0/255, green: 91/255, blue: 171/255))
         .cornerRadius(6)
-    }
-}
-
-// MARK: - Destination Detail View Placeholder
-struct PlaceholderDetailView: View {
-    let destination: DashboardDestination
-
-    var body: some View {
-        ZStack {
-            Color(red: 3/255, green: 32/255, blue: 74/255).ignoresSafeArea()
-            Text("\(destination.title) Screen")
-                .font(.custom("KievitOffcPro-Bold", size: 24))
-                .foregroundColor(.white)
-        }
-        .navigationTitle(destination.title)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
