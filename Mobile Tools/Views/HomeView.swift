@@ -72,6 +72,21 @@ struct HomeView: View {
         NavigationStack(path: $navigationPath) {
             GeometryReader { geometry in
                 let isPad = geometry.size.width > 600
+                let heroHeight = geometry.size.height * (isPad ? 0.36 : 0.30)
+                let gridTopPadding: CGFloat = 24
+                let footerReserve: CGFloat = isPad ? 100 : 80
+                let gridSpacing: CGFloat = 14
+                let columnCount = 3
+                let rowCount = CGFloat((gridItems.count + columnCount - 1) / columnCount)
+                let contactButtonHeight: CGFloat = isPad ? 58 : 48
+                let footerBottomPadding = geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 12
+                // Actual footer height plus a gap so the last tile row clears the Contact Us button
+                let footerClearance = contactButtonHeight + footerBottomPadding + gridTopPadding
+                // Stretch tiles to fill the space between the hero and the Contact Us footer,
+                // falling back to the base tile height (and scrolling) on short screens
+                let fittedTileHeight = (geometry.size.height - heroHeight - gridTopPadding - footerClearance
+                                        - gridSpacing * (rowCount - 1)) / rowCount
+                let tileHeight = max(isPad ? 135 : 108, fittedTileHeight)
 
                 ZStack(alignment: .bottom) {
                     // Core Application Dark Background tint
@@ -87,7 +102,7 @@ struct HomeView: View {
                                 Image("Hero Image")
                                     .resizable()
                                     .scaledToFill()
-                                    .frame(width: geometry.size.width, height: geometry.size.height * (isPad ? 0.36 : 0.30))
+                                    .frame(width: geometry.size.width, height: heroHeight)
                                     .clipped()
                                 // Overlaying the original design gradient built strictly into code
                                     .overlay(
@@ -123,19 +138,19 @@ struct HomeView: View {
                             }
 
                             // MARK: - Responsive Action Grid
-                            let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: isPad ? 4 : 3)
+                            let columns = Array(repeating: GridItem(.flexible(), spacing: gridSpacing), count: columnCount)
 
-                            LazyVGrid(columns: columns, spacing: 14) {
+                            LazyVGrid(columns: columns, spacing: gridSpacing) {
                                 ForEach(gridItems) { item in
                                     NavigationLink(value: item.destination) {
-                                        MenuButtonView(item: item, isPad: isPad)
+                                        MenuButtonView(item: item, isPad: isPad, height: tileHeight)
                                     }
                                 }
                             }
                             .padding(.horizontal, 16)
-                            .padding(.top, 24)
+                            .padding(.top, gridTopPadding)
                             // Provides empty scrolling buffer space over fixed footer item
-                            .padding(.bottom, isPad ? 100 : 80)
+                            .padding(.bottom, max(footerReserve, footerClearance))
                         }
                     }
 
@@ -146,13 +161,13 @@ struct HomeView: View {
                                 .font(.custom("KievitOffcPro-Medium", size: isPad ? 19 : 16))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: isPad ? 58 : 48)
+                                .frame(height: contactButtonHeight)
                                 .background(Color(red: 0/255, green: 91/255, blue: 171/255))
                                 .cornerRadius(6)
                         }
                         .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: -3)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 12)
+                        .padding(.bottom, footerBottomPadding)
                     }
                     // Background gradient shield so grid elements slide cleanly behind the footer button
                     .background(
@@ -223,6 +238,7 @@ struct HomeView: View {
 struct MenuButtonView: View {
     let item: GridItemModel
     let isPad: Bool
+    var height: CGFloat? = nil
 
     var body: some View {
         let edgeInset: CGFloat = isPad ? 16 : 12
@@ -252,7 +268,7 @@ struct MenuButtonView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-        .frame(height: isPad ? 135 : 108)
+        .frame(height: height ?? (isPad ? 135 : 108))
         .background(Color(red: 0/255, green: 91/255, blue: 171/255))
         .cornerRadius(6)
     }

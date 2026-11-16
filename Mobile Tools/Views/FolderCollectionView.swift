@@ -14,11 +14,15 @@ struct FolderCollectionView: View {
     let fileType: FileType
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    // Explicit dynamic grid arrangement columns
-    private let columns = [
-        GridItem(.flexible(), spacing: 16)
-    ]
+    // One column on iPhone, multiple columns on regular-width layouts (iPad)
+    private var columns: [GridItem] {
+        if horizontalSizeClass == .regular {
+            return [GridItem(.adaptive(minimum: 340), spacing: 16)]
+        }
+        return [GridItem(.flexible(), spacing: 16)]
+    }
 
     // Safely typed fetch helper utilizing the enum's raw string representation
     private var folderGroups: [BekoFile] {

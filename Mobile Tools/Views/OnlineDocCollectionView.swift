@@ -21,12 +21,20 @@ struct OnlineDocCollectionView: View {
     @State private var showingShareSheet = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var currentLanguage = FileLanguage.english // Default language selection
     private let languageFilters: [FileLanguage] = [.english, .spanish, .french, .portuguese]
     private var columns: [GridItem] {
         if fileType.usesSingleColumnGrid {
+            // Wide rows: one column on iPhone, multiple columns on regular-width layouts (iPad)
+            if horizontalSizeClass == .regular {
+                return [GridItem(.adaptive(minimum: 340), spacing: 16)]
+            }
             return [GridItem(.flexible(), spacing: 16)] // Single column wide rows
+        } else if horizontalSizeClass == .regular {
+            // Larger covers on iPad so cover text stays legible (~4 columns on a 13" iPad)
+            return [GridItem(.adaptive(minimum: 220, maximum: 300), spacing: 16)]
         } else {
             return [GridItem(.adaptive(minimum: 140, maximum: 220), spacing: 16)]
         }
@@ -168,7 +176,8 @@ struct DocumentGridCell: View {
     var body: some View {
         // Standard Sheet Aspect Ratio Layout (1 : 1.414 ratio matches standard paper/A4)
         VStack(alignment: .center, spacing: 10) {
-            ZStack(alignment: .bottomLeading) {
+            // Selection indicator sits top-trailing, where cover art is blank, so it never hides product names
+            ZStack(alignment: .topTrailing) {
                 cellThumbnailImage
                     .cornerRadius(8)
                     .clipped()
